@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>PLAY WITH IT</title>
+    <style>
+      html, body {
+       width: 1000px;
+       height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        margin: 0px 0px 0px 300px;
+        height: 100%;
+      }
+
+      .poi-box {width:100%;text-align:center;color:blue; position:absolute; z-index:500;}
+      .poi-box p {margin: 30% 0% 0% 0%}
+    </style>
+    <script src="http://maps.google.com/maps/api/js?sensor=false&libraries=places&types=(cities)&language=en-AU"></script>
+    <script>
+
+      var overlay;
+      Overlay.prototype = new google.maps.OverlayView();
+ 
+      /*
+      Initialize the map and the custom overlay.
+      script to change basic map layout
+      */
+
+      //just change the lat and lng here to get disired location
+      var center_point = {lat: 20.5937, lng: 78.9629};
+      var maxZoomLevel = 5;
+      var minZoomLevel = 5;
+      function initMap() {
+          var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: minZoomLevel,
+          center: center_point,
+
+          /*UI control options
+          ----------------------- */
+          zoomControl: false,
+          mapTypeControl: false,
+          scaleControl: false,
+          streetViewControl: false,
+          rotateControl: false,
+          fullscreenControl: false,
+          /*dragging option on map
+            this method of map restriction need the measurement of div to display
+            desirable part of map,determiones the dislay part as per the center given.
+          */
+          //draggable: false
+
+         
+          });
+        
+  
+      /*script to change map features like element geometry, visibilitiy of various components,hue,saturation.
+      */
+          map.set('styles' , [
+                      { stylers: [
+                                 { hue: "#00ffe6" },{ saturation: -20 } 
+                                 ]
+                      },
+                      { featureType: "road", elementType: "geometry", stylers: [
+                                 { lightness: 100 },
+                                 { visibility: "simplified" }
+                                 ]
+                      },
+                      { featureType: "poi.cities", elementType: "labels", stylers: [
+                                 { visibility: "on" }
+                                 ]
+                      },
+                      {
+                        featureType: "administrative.country",
+                        elementType: "labels",
+                        stylers: [{
+                          visibility: "off"
+                        }]
+                      },
+                      {
+                        featureType: "administrative.locality",
+                        elementType: "labels",
+                        stylers: [{
+                          visibility: "off"
+                        }]
+                      }
+                      ]);
+
+          /*script to blur and highlight the countries*/
+            var world_geometry = new google.maps.FusionTablesLayer({
+             query: {
+                    select: 'geometry',
+                    from: '1N2LBk4JHwWpOY4d9fobIn27lfnZ5MDy-NoqqRpk',
+                    where: "ISO_2DIGIT IN ('IN')"
+                      },
+                     map: map,
+                     suppressInfoWindows: true,
+            styles: [{
+                      polygonOptions: {
+                      fillColor: '#00FF00',
+                       fillOpacity: 0.3,
+
+                      }
+                    }]
+             });
+
+          /*This script is use to customize POI like its size, color etc*/
+          var marker = new google.maps.Marker({
+          position: map.getCenter(),
+          icon:
+           {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: 'white',
+            fillOpacity: 1.0,
+            scale: 20,
+            strokeColor: 'red',
+            strokeWeight: 1,
+            title: 'Hello'
+
+          },
+          draggable: false,
+          //label : {text:'S', color:'green'},
+          map: map,
+          zIndex:1000
+        }); 
+        marker.setZIndex(10000);       
+        /*calculating the estimate size of div*/
+        var below_lat=center_point.lat-0.042088;
+        var above_lat=center_point.lat+0.042088;
+        var before_lng=center_point.lng-0.103683;
+        var after_lng=center_point.lng+0.103683;
+        var bounds = new google.maps.LatLngBounds(
+            new google.maps.LatLng(below_lat, before_lng),
+            new google.maps.LatLng(above_lat, after_lng));
+
+        // A customize inner html is being created which can contain any think like text,images etc
+        var txt="<div class='poi-box'><p>INDIA</p></div>"
+
+        overlay = new Overlay(bounds, txt, map);
+
+        /*controlling zoom*/
+       /*var strictBounds = new google.maps.LatLngBounds(
+ new google.maps.LatLng(22.50, 82.00),
+ new google.maps.LatLng(24.50, 84.00));
+*/
+var strictBounds = new google.maps.LatLngBounds(
+ new google.maps.LatLng(8.00, 68.70),
+ new google.maps.LatLng(37.60, 96.00));
+
+ // Listen for the dragend event
+ //this method of map restriction depends on center been taken.
+ //can work on small div size also.
+ google.maps.event.addListener(map, 'dragend', function () {
+     if (strictBounds.contains(map.getCenter())) return;
+
+     // We're out of bounds - Move the map back within the bounds
+
+         x = center_point.lng;
+         y = center_point.lat;
+         maxX = strictBounds.getNorthEast().lng(),
+         maxY = strictBounds.getNorthEast().lat(),
+         minX = strictBounds.getSouthWest().lng(),
+         minY = strictBounds.getSouthWest().lat();
+
+          if (x < minX) x = minX;
+          if (x > maxX) x = maxX;
+          if (y < minY) y = minY;
+          if (y > maxY) y = maxY;
+
+     map.setCenter(new google.maps.LatLng(y, x));
+ });
+
+ // Limit the zoom level
+ 
+      google.maps.event.addListener(map, 'zoom_changed', function () {
+      if (map.getZoom() < minZoomLevel) map.setZoom(minZoomLevel);
+      if (map.getZoom() > maxZoomLevel) map.setZoom(maxZoomLevel);
+
+      });
+      }
+
+      // Set the custom overlay object's prototype to a new instance
+      // of OverlayView. In effect, this will subclass the overlay class therefore
+      // it's simpler to load the API synchronously, using
+      // google.maps.event.addDomListener().
+      // Note that we set the prototype to an instance, rather than the
+      // parent class itself, because we do not wish to modify the parent class.
+
+      /** @constructor */
+      function Overlay(bounds, txt, map) {
+
+        // Initialize all properties.
+        this.bounds_ = bounds;
+        this.txt_ = txt;
+        this.map_ = map;
+
+        // Define a property to hold the image's div. We'll
+        // actually create this div upon receipt of the onAdd()
+        // method so we'll leave it null for now.
+        this.div_ = null;
+
+        // Explicitly call setMap on this overlay.
+        this.setMap(map);
+      }
+
+      /**
+       * onAdd is called when the map's panes are ready and the overlay has been
+       * added to the map.
+       */
+      Overlay.prototype.onAdd = function() {
+        /* creating an inner html */
+        var div = document.createElement('div');
+        div.style.borderStyle = 'none';
+        div.style.borderWidth = '0px';
+        div.style.position = 'absolute';
+        //div.style.backgroundColor = 'blue';
+        div.innerHTML = this.txt_;
+        this.div_ = div;
+
+        // Add the element to the "overlayLayer" pane.
+        var panes = this.getPanes();
+        panes.overlayLayer.appendChild(div);
+      };
+
+      Overlay.prototype.draw = function() {
+
+        // We use the south-west and north-east
+        // coordinates of the overlay to peg it to the correct position and size.
+        // To do this, we need to retrieve the projection from the overlay.
+        var overlayProjection = this.getProjection();
+
+        // Retrieve the south-west and north-east coordinates of this overlay
+        // in LatLngs and convert them to pixel coordinates.
+        // We'll use these coordinates to resize the div.
+
+        var sw = overlayProjection.fromLatLngToDivPixel(this.bounds_.getSouthWest());
+        var ne = overlayProjection.fromLatLngToDivPixel(this.bounds_.getNorthEast());
+       
+        var center = overlayProjection.fromLatLngToDivPixel(new google.maps.LatLng(center_point));
+
+        /* Following code to derive pixels from Long, Lat. However this will
+           cause the bounds to stretch or contract as we zoom
+           ---------------------------------------------------------------
+        // Resize the image's div to fit the indicated dimensions.
+        var div = this.div_;
+        div.style.left = sw.x + 'px';
+        div.style.top = ne.y + 'px';
+        div.style.width = (ne.x - sw.x) + 'px';
+        div.style.height = (sw.y - ne.y) + 'px';
+        */
+
+        /* 
+         Simple fixed size irrespective of zoom code
+         Here we have taken the center, and with the help of its attribute we have calculated the
+         side of the inner html div. 
+         -------------------------------------------
+        */
+        var div = this.div_;
+        var l = 30;
+        div.style.left = (center.x - (l/2)) + 'px';
+        div.style.top = (center.y - (l/2)) + 'px';
+        div.style.width = l+'px';
+        div.style.height = l+'px';  
+
+        // DOM Hack >:) Nyahahhahahaha !!!!
+        //To ensure opacity of POI does not shadow the box
+        //alert(this.div_.parentNode)
+        this.div_.parentNode.style.zIndex = 500; 
+      };
+
+      // The onRemove() method will be called automatically from the API if
+      // we ever set the overlay's map property to 'null'.
+        Overlay.prototype.onRemove = function() {
+        this.div_.parentNode.removeChild(this.div_);
+        this.div_ = null;
+      };
+
+      
+
+      google.maps.event.addDomListener(window, 'load', initMap);
+    </script>
+  </head>
+  <body>
+    <div id="map"></div>
+  </body>
+</html>
